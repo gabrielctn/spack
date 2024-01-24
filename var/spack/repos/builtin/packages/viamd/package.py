@@ -18,6 +18,8 @@ class Viamd(CMakePackage):
     license("MIT")
 
     version("main", branch="main")
+    version("0.1.29", tag="v0.1.29", commit="20f86602a040f9f8165087cc78a23d21634be912")
+    version("0.1.27", tag="v0.1.27", commit="bfef587a293fd55e7766ba22f5bffe71eb59d6a2")
     version("0.1.25", tag="v0.1.25", commit="8875737f85d43186f220e3fabdeb3a8f59ad6d08")
     version("0.1.24", tag="v0.1.24", commit="091a25ccc0137a927da8603b649a18f9761b92fa")
     version("0.1.22", tag="v0.1.22", commit="ed9a018999db04193f30d9714cfb3e6385b6d577")
