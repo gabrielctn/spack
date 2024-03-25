@@ -1,4 +1,4 @@
-# Copyright 2013-2023 Lawrence Livermore National Security, LLC and other
+# Copyright 2013-2024 Lawrence Livermore National Security, LLC and other
 # Spack Project Developers. See the top-level COPYRIGHT file for details.
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
@@ -148,6 +148,8 @@ def test_strip_compression_extension(archive_and_expected):
         assert stripped == "Foo.zip"
         stripped = llnl.url.strip_compression_extension(archive, "zip")
         assert stripped == "Foo"
+    elif extension == "whl":
+        assert stripped == "Foo.whl"
     elif (
         extension.lower() == "tar"
         or extension in llnl.url.CONTRACTION_MAP
