@@ -62,3 +62,7 @@ class Libiconv(AutotoolsPackage, GNUMirrorPackage):
     def libs(self):
         shared = "libs=shared" in self.spec
         return find_libraries(["libiconv"], root=self.prefix, recursive=True, shared=shared)
+
+
+    def setup_run_environment(self, env):
+        env.prepend_path('LD_LIBRARY_PATH', self.prefix.lib)

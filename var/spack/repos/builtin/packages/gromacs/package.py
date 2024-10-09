@@ -321,6 +321,8 @@ class Gromacs(CMakePackage, CudaPackage):
     depends_on("nvhpc", when="+nvshmem")
     depends_on("heffte", when="+heffte")
 
+    depends_on("libiconv", type="run")
+
     requires(
         "%intel",
         "%oneapi",
@@ -761,3 +763,6 @@ class CMakeBuilder(spack.build_systems.cmake.CMakeBuilder):
                     "lib",
                 ),
             )
+
+    def setup_run_environment(self, env):
+        env.prepend_path('LD_LIBRARY_PATH', self.spec['libiconv'].prefix.lib)
