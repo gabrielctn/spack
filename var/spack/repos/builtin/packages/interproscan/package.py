@@ -119,6 +119,8 @@ class Interproscan(Package):
         # link the main shell script into the PATH
         symlink(join_path(prefix, "interproscan.sh"), join_path(prefix.bin, "interproscan.sh"))
 
+        which("python3")("setup.py", "-f", "interproscan.properties")
+
     @when("@:4.8")
     def install(self, spec, prefix):
         perl = which("perl")
