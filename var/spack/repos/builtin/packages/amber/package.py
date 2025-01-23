@@ -1,14 +1,15 @@
-# Copyright Spack Project Developers. See COPYRIGHT file for details.
+# Copyright 2013-2023 Lawrence Livermore National Security, LLC and other
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
 import os
 import shutil
 
+from llnl.util import tty
+
 from spack.package import *
 
-
-class Amber(Package, CudaPackage):
+class Amber(CMakePackage, CudaPackage):
     """Amber is a suite of biomolecular simulation programs together
     with Amber tools.
 
@@ -22,11 +23,14 @@ class Amber(Package, CudaPackage):
     """
 
     homepage = "https://ambermd.org/"
-    url = "file://{0}/Amber18.tar.bz2".format(os.getcwd())
+    url = "file://{0}/Amber24.tar.bz2".format(os.getcwd())
     manual_download = True
 
     maintainers("hseara")
 
+
+    version("24", sha256="74a7dbc4530f6302ae1efe723ba54d0fcdb03bce2b7231663ce5afc2c5660076")
+    version("22", sha256="3c887ccbad690fc76ff0b120a3448eae023c08e76582aac07900d4a9708ebd16")
     version("20", sha256="a4c53639441c8cc85adee397933d07856cc4a723c82c6bea585cd76c197ead75")
     version("18", sha256="2060897c0b11576082d523fb63a51ba701bc7519ff7be3d299d5ec56e8e6e277")
     version(
@@ -37,22 +41,32 @@ class Amber(Package, CudaPackage):
 
     resources = {
         # [version amber, version ambertools , sha256sum]
+        "24": ("24", "52fb4fb3370a89b7ce738a2dc3e513c2fc1943fde4b4381846d9e75cc48d840f"),
+        "22": ("23", "debb52e6ef2e1b4eaa917a8b4d4934bd2388659c660501a81ea044903bf9ee9d"),
         "20": ("21", "f55fa930598d5a8e9749e8a22d1f25cab7fcf911d98570e35365dd7f262aaafd"),
         # '20': ('20', 'b1e1f8f277c54e88abc9f590e788bbb2f7a49bcff5e8d8a6eacfaf332a4890f9'),
         "18": ("19", "0c86937904854b64e4831e047851f504ec45b42e593db4ded92c1bee5973e699"),
         "16": ("16", "7b876afe566e9dd7eb6a5aa952a955649044360f15c1f5d4d91ba7f41f3105fa"),
     }
     for ver, (ambertools_ver, ambertools_checksum) in resources.items():
+        if ver == "23":
+            ver = 22
         resource(
             when="@{0}".format(ver),
             name="AmberTools",
             url="file://{0}/AmberTools{1}.tar.bz2".format(os.getcwd(), ambertools_ver),
             sha256=ambertools_checksum,
             destination="",
-            placement="ambertools_tmpdir",
+            placement="ambertools_tmpdir"
         )
 
+
+    depends_on("cmake", type="build")
+
+
     patches = [
+        ("24", "1", "16b5b8fe992130857ca351c9a0001f2952db16490140d7c72fc299ad3765de7f"),
+        ("24", "2", "4944a61989bf4f907d32240f704aa1766926338d39c56992f40ab0d22602beb1"),
         ("20", "1", "10780cb91a022b49ffdd7b1e2bf4a572fa4edb7745f0fc4e5d93b158d6168e42"),
         ("20", "2", "9c973e3f8f33a271d60787e8862901e8f69e94e7d80cda1695f7fad7bc396093"),
         ("20", "3", "acb359dc9b1bcff7e0f1965baa9f3f3dc18eeae99c49f1103c1e2986c0bbeed8"),
@@ -120,16 +134,44 @@ class Amber(Package, CudaPackage):
     patch("nvhpc-boost.patch", when="@18: %nvhpc")
 
     variant("mpi", description="Build MPI executables", default=True)
+    # (Note: Set NCCL_HOME to your NCCL install path.)
+    variant("nccl", description="Use NCCL for inter-GPU communications", default=False)
+    variant("mkl", description="Use Intel MKL for BLAS/LAPACK routines, as well as FFTW if no other FFTW specified; incompatible with the GOTO and -macAccelerate options", default=False)
     variant("openmp", description="Use OpenMP pragmas to parallelize", default=False)
-    variant("x11", description="Build programs that require X11", default=False)
+    variant("x11", description="Build programs that provide GUI (require X11)", default=False)
     variant("update", description="Update the sources prior compilation", default=False)
+    variant("plumed", description="plumed", default=False)
+    variant("perl", description="build perl components (FEW and mm_pbsa) ", default=False)
+    variant("quick", description="build  QUICK ab initio QM code and ab initio QM/MM capability in SANDER", default=False)
+    variant("tests", description="install tests ( larger install size)", default=False)
+    variant("python", description="use python packages", default=False)
+    variant("conda", description="use miniconda", default=False)
 
     depends_on("zlib-api")
+    depends_on("readline")
+    depends_on("libx11", type=("run", "link"), when="+x11")
+    depends_on("python+tkinter", when="+python")
+    depends_on("perl", when="+perl", type=("run", "link"))
+    depends_on("perl", type=("build"))
+    depends_on("py-numpy", when="+python")
+    depends_on("py-mpi4py", when="+python+mpi")
+    depends_on("py-scipy", when="+python")
+    depends_on("py-matplotlib", when="+python")
+    depends_on("py-setuptools", when="+python")
+    depends_on("fftw", when="~mkl")
+    depends_on("plumed+mpi", when="+mpi")
+    depends_on("plumed~mpi", when="~mpi")
+
     depends_on("bzip2")
     depends_on("flex", type="build")
     depends_on("bison", type="build")
     depends_on("netcdf-fortran")
+    depends_on("netcdf-c")
     depends_on("parallel-netcdf", when="@20:")  # when='AmberTools@21:'
+    depends_on("arpack-ng")
+    depends_on("protobuf")
+    depends_on("boost+chrono+filesystem+graph+iostreams+program_options+regex+system+thread+timer")
+    depends_on("netlib-xblas")
     depends_on("tcsh", type=("build"), when="@20")  # when='AmberTools@21:'
     # Potential issues with openmpi 4
     # (http://archive.ambermd.org/201908/0105.html)
@@ -137,10 +179,14 @@ class Amber(Package, CudaPackage):
 
     # Cuda dependencies
     # /AmberTools/src/configure2:1329
-    depends_on("cuda@:11.1", when="@20:+cuda")  # when='AmberTools@21:'
+    #depends_on("cuda@:11.1", when="@20:+cuda")  # when='AmberTools@21:'
+    depends_on("cuda", when="@20:+cuda")  # when='AmberTools@21:'
     depends_on("cuda@:10.2.89", when="@18+cuda")
     depends_on("cuda@7.5.18", when="@:16+cuda")
     depends_on("gmake", type="build")
+    depends_on("nccl", when="+nccl")
+    depends_on("intel-oneapi-mkl", when="+mkl")
+    depends_on("libiconv")
 
     # conflicts
     conflicts("+x11", when="platform=cray", msg="x11 amber applications not available for cray")
@@ -153,9 +199,60 @@ class Amber(Package, CudaPackage):
         url = "file://{0}/Amber{1}.tar.bz2".format(os.getcwd(), version)
         return url
 
+    def patch(self):
+        # this funcions try to move, merging folders, in case there is a collision, does not copy and issue a warning
+        def my_copy(from_path,to_path):
+            if os.path.exists(to_path):
+                if os.path.isdir(to_path):
+                    for p in os.listdir(from_path):
+                        my_copy(join_path(from_path,p),join_path(to_path,p))
+                else:
+                    tty.warn("Path " + to_path + " already present, skip move of " + from_path)
+            else:
+                os.rename(from_path,to_path)
+
+        my_copy(join_path(self.stage.source_path, "ambertools_tmpdir"),self.stage.source_path)
+
+        # CudaConfig seem too much picky about compatibility between gcc and cuda versions, extending compatibility from cuda 11.6 to 11.8
+        filter_file(
+                r'CUDA_VERSION VERSION_LESS_EQUAL 11.6',
+                'CUDA_VERSION VERSION_LESS_EQUAL 11.8',
+                join_path(self.stage.source_path, "cmake", "CudaConfig.cmake"),
+                string=True,
+                )
+        filter_file(
+                r'VERSION_LESS_EQUAL 11.6',
+                'VERSION_LESS_EQUAL 11.8',
+                join_path(self.stage.source_path, "AmberTools", "src", "quick", "quick-cmake", "QUICKCudaConfig.cmake"),
+                string=True,
+                )
+        filter_file(
+                r'fftw_mpi_init FFTW_MPI_WORKS',
+                'fftw_mpi_init FFTW_MPI_WORKS ${MPI_mpi_LIBRARY}',
+                join_path(self.stage.source_path, "cmake", "jedbrown", "FindFFTW.cmake"),
+                string=True,
+                )
+        filter_file(
+                r'LIBRARIES ${PLUMED_LIBRARIES}',
+                'LIBRARIES ${PLUMED_LIBRARIES} ${MPI_mpi_LIBRARY}',
+                join_path(self.stage.source_path, "cmake", "FindPLUMED.cmake"),
+                string=True,
+                )
+
+
+        
+        
     def setup_build_environment(self, env):
-        amber_src = self.stage.source_path
-        env.set("AMBERHOME", amber_src)
+
+        # UPDATES
+        if self.spec.satisfies("+update"):
+            amber_src = self.stage.source_path
+            env.set("AMBERSOURCE", amber_src)
+            env.set("AMBERHOME", amber_src)
+            env.set("AMBER_SOURCE", amber_src)
+
+        if self.spec.satisfies("+plumed"):
+            env.set("PLUMED_ROOT", self.spec["plumed"].prefix)
 
         # The bundled Boost does not detect the bzip2 package, but
         # will silently fall back to a system install (if available).
@@ -166,14 +263,46 @@ class Amber(Package, CudaPackage):
         if self.spec.satisfies("+cuda"):
             env.set("CUDA_HOME", self.spec["cuda"].prefix)
 
-    def install(self, spec, prefix):
+        # NCCL
+        if self.spec.satisfies("+nccl"):
+            env.set("NCCL_HOME", self.spec["nccl"].prefix)
+
+        # MPI
+        if self.spec.satisfies("+mpi"):
+            env.set("MPI_HOME", self.spec["mpi"].prefix)
+
+        # MKL
+        if self.spec.satisfies("+mkl"):
+            if self.spec["mkl"].name == "intel-oneapi-mkl":
+                env.set("MKL_HOME", self.spec["intel-oneapi-mkl"].prefix)
+                env.set("MKLROOT", self.spec["intel-oneapi-mkl"].prefix)
+            else:
+                env.set("MKL_HOME", self.spec["mkl"].prefix)
+                env.set("MKLROOT", self.spec["mkl"].prefix)
+
+
+
+    def cmake_args(self):
+
         # The resource command does not allow us to expand the package in the
         # root stage folder as required, as it already contains files. Here we
         # install AmberTools where it should be, which results in 3 copies of
         # the  ambertools (~9 GB). This has to be improved in the future.
-        install_tree("ambertools_tmpdir", ".")
-        shutil.rmtree(join_path(self.stage.source_path, "ambertools_tmpdir"))
+        #shutil_copytree.copytree(join_path(self.stage.source_path, "ambertools_tmpdir"), self.stage.source_path, dirs_exist_ok=True)
+        # I cannot remove the folder, because apparently copytree is asynchronous
+        #shutil.rmtree(join_path(self.stage.source_path, "ambertools_tmpdir"))
 
+        spec = self.spec
+
+        netcdfIncf=join_path(self.spec["netcdf-fortran"].prefix, "include")
+        netcdfLibf=join_path(self.spec["netcdf-fortran"].prefix, "lib")
+        netcdflsof=join_path(netcdfLibf, "libnetcdff.so")
+        netcdfIncc=join_path(self.spec["netcdf-c"].prefix, "include")
+        netcdfLibc=join_path(self.spec["netcdf-c"].prefix, "lib")
+        netcdflsoc=join_path(netcdfLibc, "libnetcdf.so")
+        amber_src = self.stage.source_path
+        ambertoolsPath=join_path(amber_src, "AmberTools")
+        ambertoolsSrc=join_path(ambertoolsPath, "src")
         # Select compiler style
         if self.spec.satisfies("%cce"):
             compiler = "cray"
@@ -188,63 +317,92 @@ class Amber(Package, CudaPackage):
         else:
             raise InstallError("Unknown compiler, exiting!!!")
 
-        # Alternative way to make csh/tcsh detection work with modules
-        filter_file(
-            r"-x /bin/csh",
-            "command -v csh &> /dev/null/",
-            "AmberTools/src/configure2",
-            string=True,
-        )
+        base_cmakeargs = ["-DDOWNLOAD_MINICONDA:BOOL=OFF",
+        "-DTRUST_SYSTEM_LIBS=TRUE",
+        "-DnetCDF_C_LIBRARY="+netcdflsoc,
+        "-DnetCDF_C_INCLUDE_DIR="+netcdfLibc,
+        "-DNetCDF_LIBRARIES_C="+netcdflsoc,
+        "-DNetCDF_INCLUDES="+netcdfIncc,
+        "-DNetCDF_LIBRARIES_F77="+netcdflsof,
+        "-DNetCDF_LIBRARIES_F90="+netcdflsof,
+        "-DNetCDF_INCLUDES_F77="+netcdfIncf,
+        "-DNetCDF_INCLUDES_F90="+netcdfIncf,
+        "-DCOMPILER="+compiler.upper(),
+        ]
+        if self.spec.satisfies("+mkl"):
+            base_cmakeargs.append("-DFORCE_EXTERNAL_LIBS=mkl")
+            base_cmakeargs.append("-DTRUST_SYSTEM_LIBS=TRUE")
+        base_cmakeargs.append("-DBOOST_ROOT={0}".format(spec["boost"].prefix))
+        if self.spec.satisfies("+plumed"):
+            base_cmakeargs.append("-DPLUMED_ROOT={0}".format(spec["plumed"].prefix))
+#            base_cmakeargs.append("-DPLUMED_DIR={0}".format(spec["plumed"].prefix.include))
+#            base_cmakeargs.append("-DPLUMED_LIBRARY={0}".format(spec["plumed"].prefix.lib))
+        base_cmakeargs.append(self.define("MPI_HOME", spec["mpi"].prefix))
 
-        # Base configuration
-        conf = Executable("./configure")
-        base_args = ["--skip-python", "--with-netcdf", self.spec["netcdf-fortran"].prefix]
-        if self.spec.satisfies("~x11"):
-            base_args += ["-noX11"]
+        # patching python
+        if self.spec.satisfies("+python"):
+            pythonBin=join_path(self.spec["python"].prefix, "bin")
+            pythonExe=join_path(pythonBin, "python")
+            pytrjPath=join_path(ambertoolsSrc, "pytraj")
+            pytrjcmake=join_path(pytrjPath, "CMakeLists.txt")
+            base_cmakeargs.append("-DPYTHON_EXECUTABLE:FILEPATH="+pythonExe)
+            filter_file(
+                r'	COMMAND ${CMAKE_COMMAND} -E touch ${STAMP_FILE}',
+                '	COMMAND ${CMAKE_COMMAND} -E make_directory ${BUILD_DIR}\n	COMMAND ${CMAKE_COMMAND} -E touch ${STAMP_FILE}',
+                pytrjcmake,
+                string=True,
+                )
+        if self.spec.satisfies("+conda"):
+            base_cmakeargs.append("-DDOWNLOAD_MINICONDA=TRUE")
+        cmake_args = base_cmakeargs
 
-        # Update the sources: Apply all upstream patches
-        if self.spec.satisfies("+update"):
-            update = Executable("./update_amber")
-            update(*(["--update"]))
-        else:
-            base_args += ["--no-updates"]
+        variant_option_exceptions = {"python": "BUILD_PYTHON",
+                                     "perl": "BUILD_PERL",
+                                     "quick": "BUILD_QUICK",
+                                     "x11": "BUILD_GUI",
+                                     "tests": "INSTALL_TESTS",
+                                     "update": "CHECK_UPDATES",
+                                    }
+        variant_options = ["openmp", "cuda", "nccl", "mpi", "python", "perl", "quick", "x11", "tests", "update"]
 
-        # Non-x86 architecture
-        if self.spec.target.family != "x86_64":
-            base_args += ["-nosse"]
+        for variant in variant_options:
+            cmake_args.append(
+                self.define_from_variant(variant_option_exceptions.get(variant,variant.upper()), variant)
+            )
 
-        # Single core
-        conf(*(base_args + [compiler]))
-        make("install")
+#luigi        if self.spec.satisfies("+openmp"):
+#luigi            cmake_args.append(
+#luigi                self.define_from_variant("OPENMP", "openmp"),
+#luigi            )
 
-        # CUDA
-        if self.spec.satisfies("+cuda"):
-            conf(*(base_args + ["-cuda", compiler]))
-            make("install")
+#luigi        if self.spec.satisfies("+cuda"):
+#luigi            cmake_args.append(
+#luigi                self.define_from_variant("CUDA", "cuda"),
+#luigi            )
 
-        # MPI
-        if self.spec.satisfies("+mpi"):
-            conf(*(base_args + ["-mpi", compiler]))
-            make("install")
+#luigi        if  self.spec.satisfies("+nccl"):
+#luigi            cmake_args.append(
+#luigi                self.define_from_variant("NCCL", "nccl"),
+#luigi            )
 
-        # Openmp
-        if self.spec.satisfies("+openmp"):
-            make("clean")
-            conf(*(base_args + ["-openmp", compiler]))
-            make("openmp")
+#luigi        if self.spec.satisfies("+mpi"):
+#luigi            cmake_args.append(
+#luigi                self.define_from_variant("MPI", "mpi"),
+#luigi            )
 
-        # CUDA + MPI
-        if self.spec.satisfies("+cuda") and self.spec.satisfies("+mpi"):
-            make("clean")
-            conf(*(base_args + ["-cuda", "-mpi", compiler]))
-            make("install")
+            ## in case prefers taking MPI compiler wrappers as CMake compilers, comment out these lines.
+            #if "+mpi" in spec:
+            #    cmake_args.append(self.define("CMAKE_C_COMPILER", spec["mpi"].mpicc))
+            #    cmake_args.append(self.define("CMAKE_Fortran_COMPILER", spec["mpi"].mpifc))
+        return cmake_args
 
-        # just install everything that was built
-        install_tree(".", prefix)
+
+
 
     def setup_run_environment(self, env):
         env.set("AMBER_PREFIX", self.prefix)
         env.set("AMBERHOME", self.prefix)
+        env.prepend_path('LD_LIBRARY_PATH', self.spec['libiconv'].prefix.lib)
         # CUDA
         if self.spec.satisfies("+cuda"):
             env.prepend_path("LD_LIBRARY_PATH", self.spec["cuda"].prefix.lib)
