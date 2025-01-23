@@ -833,6 +833,7 @@ class Boost(Package):
 
     def setup_run_environment(self, env):
         env.set("BOOST_ROOT", self.prefix)
+        env.set("LD_LIBRARY_PATH", self.prefix.lib)
 
     def setup_dependent_build_environment(self, env, dependent_spec):
         if "+context" in self.spec and "context-impl" in self.spec.variants:
