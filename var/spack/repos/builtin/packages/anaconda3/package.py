@@ -224,3 +224,6 @@ class Anaconda3(Package):
     def setup_run_environment(self, env):
         filename = self.prefix.etc.join("profile.d").join("conda.sh")
         env.extend(EnvironmentModifications.from_sourcing_file(filename))
+        # Add the CONDA_ENVS_PATH and CONDA_PKGS_PATH environment variables
+        env.set("CONDA_ENVS_PATH", f"{self.prefix}/envs")
+        env.set("CONDA_PKGS_PATH", f"{self.prefix}/pkgs")
