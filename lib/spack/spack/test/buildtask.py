@@ -1,10 +1,10 @@
-# Copyright 2013-2024 Lawrence Livermore National Security, LLC and other
-# Spack Project Developers. See the top-level COPYRIGHT file for details.
+# Copyright Spack Project Developers. See COPYRIGHT file for details.
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
 import pytest
 
+import spack.concretize
 import spack.error
 import spack.installer as inst
 import spack.repo
@@ -25,19 +25,21 @@ def test_build_task_errors(install_mockery):
         inst.BuildTask(pkg_cls(spec), None)
 
     # Using a concretized package now means the request argument is checked.
-    spec.concretize()
+    spec = spack.concretize.concretize_one(spec)
     assert spec.concrete
+
     with pytest.raises(TypeError, match="is not a valid build request"):
         inst.BuildTask(spec.package, None)
 
     # Using a valid package and spec, the next check is the status argument.
     request = inst.BuildRequest(spec.package, {})
+
     with pytest.raises(TypeError, match="is not a valid build status"):
         inst.BuildTask(spec.package, request, status="queued")
 
     # Now we can check that build tasks cannot be create when the status
     # indicates the task is/should've been removed.
-    with pytest.raises(spack.error.InstallError, match="Cannot create a build task"):
+    with pytest.raises(spack.error.InstallError, match="Cannot create a task"):
         inst.BuildTask(spec.package, request, status=inst.BuildStatus.REMOVED)
 
     # Also make sure to not accept an incompatible installed argument value.
@@ -46,8 +48,7 @@ def test_build_task_errors(install_mockery):
 
 
 def test_build_task_basics(install_mockery):
-    spec = spack.spec.Spec("dependent-install")
-    spec.concretize()
+    spec = spack.concretize.concretize_one("dependent-install")
     assert spec.concrete
 
     # Ensure key properties match expectations
@@ -68,8 +69,7 @@ def test_build_task_basics(install_mockery):
 def test_build_task_strings(install_mockery):
     """Tests of build_task repr and str for coverage purposes."""
     # Using a package with one dependency
-    spec = spack.spec.Spec("dependent-install")
-    spec.concretize()
+    spec = spack.concretize.concretize_one("dependent-install")
     assert spec.concrete
 
     # Ensure key properties match expectations
