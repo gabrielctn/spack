@@ -12,8 +12,8 @@ from spack.package import *
 class RocmOpencl(CMakePackage):
     """OpenCL: Open Computing Language on ROCclr"""
 
-    homepage = "https://github.com/ROCm/ROCm-OpenCL-Runtime"
-    git = "https://github.com/ROCm/ROCm-OpenCL-Runtime.git"
+    homepage = "https://github.com/ROCm/clr"
+    git = "https://github.com/ROCm/clr.git"
     tags = ["rocm"]
 
     maintainers("srekolam", "renjithravindrankannath", "afzpatel")
@@ -34,7 +34,10 @@ class RocmOpencl(CMakePackage):
 
     license("MIT")
 
-    version("master", branch="main")
+    version("master", branch="main", deprecated=True)
+    version("6.3.3", sha256="8e5adca8f8c2d99d4a4e49605dd6b56b7881b762ee8ce15b4a7000e3cd982fec")
+    version("6.3.2", sha256="ec13dc4ffe212beee22171cb2825d2b16cdce103c835adddb482b9238cf4f050")
+    version("6.3.1", sha256="bfb8a4a59e7bd958e2cd4bf6f14c6cdea601d9827ebf6dc7af053a90e963770f")
     version("6.3.0", sha256="829e61a5c54d0c8325d02b0191c0c8254b5740e63b8bfdb05eec9e03d48f7d2c")
     version("6.2.4", sha256="0a3164af7f997a4111ade634152957378861b95ee72d7060eb01c86c87208c54")
     version("6.2.1", sha256="e9cff3a8663defdbda833d49c9e7160171eca14dc285ffe4061378607d6c890d")
@@ -127,12 +130,28 @@ class RocmOpencl(CMakePackage):
         "6.2.1",
         "6.2.4",
         "6.3.0",
+        "6.3.1",
+        "6.3.2",
+        "6.3.3",
         "master",
     ]:
         depends_on(f"comgr@{ver}", type="build", when=f"@{ver}")
         depends_on(f"hsa-rocr-dev@{ver}", type="link", when=f"@{ver}")
 
-    for ver in ["6.0.0", "6.0.2", "6.1.0", "6.1.1", "6.1.2", "6.2.0", "6.2.1", "6.2.4", "6.3.0"]:
+    for ver in [
+        "6.0.0",
+        "6.0.2",
+        "6.1.0",
+        "6.1.1",
+        "6.1.2",
+        "6.2.0",
+        "6.2.1",
+        "6.2.4",
+        "6.3.0",
+        "6.3.1",
+        "6.3.2",
+        "6.3.3",
+    ]:
         depends_on(f"aqlprofile@{ver}", type="link", when=f"@{ver}")
 
     for ver in [
@@ -151,6 +170,9 @@ class RocmOpencl(CMakePackage):
         "6.2.1",
         "6.2.4",
         "6.3.0",
+        "6.3.1",
+        "6.3.2",
+        "6.3.3",
     ]:
         depends_on(f"rocm-core@{ver}", when=f"@{ver}")
 
@@ -196,7 +218,7 @@ class RocmOpencl(CMakePackage):
             env.set("LDFLAGS", "-fuse-ld=lld")
 
     def setup_run_environment(self, env):
-        env.prepend_path("LD_LIBRARY_PATH", self.prefix.lib),
+        env.prepend_path("LD_LIBRARY_PATH", self.prefix.lib)
         env.set("OCL_ICD_VENDORS", self.prefix.vendors + "/")
 
     @run_after("install")

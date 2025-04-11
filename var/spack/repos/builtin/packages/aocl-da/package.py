@@ -5,7 +5,6 @@
 import os
 
 from spack.package import *
-from spack.util.environment import EnvironmentModifications
 
 
 class AoclDa(CMakePackage):
@@ -52,6 +51,8 @@ class AoclDa(CMakePackage):
         sha256="65be59e99d52816cb77d3e887cd4816870576b46748b53073658caa9ca07d127",
         when="@5.0",
     )
+
+    depends_on("c", type="build")
 
     depends_on("cmake@3.22:", type="build")
     for vers in ["5.0"]:

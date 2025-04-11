@@ -1,7 +1,7 @@
 # Copyright Spack Project Developers. See COPYRIGHT file for details.
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
-import os.path
+import os
 
 from spack.package import *
 
@@ -24,10 +24,6 @@ class Elsi(CMakePackage, CudaPackage):
         deprecated=True,
     )
     version("master", branch="master")
-
-    depends_on("c", type="build")  # generated
-    depends_on("cxx", type="build")  # generated
-    depends_on("fortran", type="build")  # generated
 
     generator("ninja")
 
@@ -74,6 +70,10 @@ class Elsi(CMakePackage, CudaPackage):
     variant("dlaf", default=False, when="@2.11:", description="Enable DLA-Future support")
 
     # Basic dependencies
+    depends_on("c", type="build")
+    depends_on("cxx", type="build")
+    depends_on("fortran", type="build")
+
     depends_on("blas", type="link")
     depends_on("lapack", type="link")
     depends_on("scalapack", type="link")

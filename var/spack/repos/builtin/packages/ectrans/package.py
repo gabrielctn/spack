@@ -27,9 +27,6 @@ class Ectrans(CMakePackage):
     version("1.2.0", sha256="2ee6dccc8bbfcc23faada1d957d141f24e41bb077c1821a7bc2b812148dd336c")
     version("1.1.0", sha256="3c9848bb65033fbe6d791084ee347b3adf71d5dfe6d3c11385000017b6469a3e")
 
-    depends_on("c", type="build")  # generated
-    depends_on("fortran", type="build")  # generated
-
     variant(
         "build_type",
         default="RelWithDebInfo",
@@ -48,6 +45,9 @@ class Ectrans(CMakePackage):
 
     variant("transi", default=True, description="Compile TransI C-interface to trans")
 
+    depends_on("c", type="build")  # generated
+    depends_on("fortran", type="build")  # generated
+
     depends_on("ecbuild", type="build")
     depends_on("mpi", when="+mpi")
     depends_on("blas")
@@ -59,7 +59,11 @@ class Ectrans(CMakePackage):
     depends_on("fiat+mpi", when="+mpi")
 
     # https://github.com/ecmwf-ifs/ectrans/issues/194
-    conflicts("%oneapi@2025:", when="@1.3.1:1.5.1")
+    patch(
+        "https://github.com/ecmwf-ifs/ectrans/commit/98f0d505d5b0866cab68a15e86e1a495bafd93d2.patch?full_index=1",
+        sha256="17999486a320a5c6a1a442adcdf2c341b49d005f45d09ad0e525594d50bdc39c",
+        when="@1.3.1:1.5.1",
+    )
 
     def cmake_args(self):
         args = [
@@ -70,5 +74,10 @@ class Ectrans(CMakePackage):
             self.define_from_variant("ENABLE_FFTW", "fftw"),
             self.define_from_variant("ENABLE_MKL", "mkl"),
             self.define_from_variant("ENABLE_TRANSI", "transi"),
+            # Turn off use of contiguous keyword in Fortran because a number
+            # of compilers have issues with it, and the hardcoded list of "bad"
+            # compilers in ectrans is incomplete and isn't kept up to date
+            # https://github.com/JCSDA/spack-stack/issues/1522
+            "-DECTRANS_HAVE_CONTIGUOUS_ISSUE=ON",
         ]
         return args
