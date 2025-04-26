@@ -41,8 +41,10 @@ class Namd(MakefilePackage, CudaPackage, ROCmPackage):
     )
     version(
         "2.15a2",
+        url="file://{0}/NAMD_2.15alpha2_Source-AVX512.tar.gz".format(
+            os.getcwd()
+        ),
         sha256="8748cbaa93fc480f92fc263d9323e55bce6623fc693dbfd4a40f59b92669713e",
-        deprecated=True,
     )
     version("2.15a1", branch="master", tag="release-2-15-alpha-1", deprecated=True)
     # Same as above, but lets you use a local file instead of git
