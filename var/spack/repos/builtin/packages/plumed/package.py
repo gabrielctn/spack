@@ -31,6 +31,7 @@ class Plumed(AutotoolsPackage):
 
     version("master", branch="master")
 
+    version("2.9.3", sha256="0abf3098d11a8720d6f8d0b65df6a8da5ccd013c7b4a8ddbbc86229066d7d640")
     version("2.9.2", sha256="301fbc958374f81d9b8c7a1eac73095f6dded52cce73ce33d64bdbebf51ac63d")
     version("2.9.1", sha256="e24563ad1eb657611918e0c978d9c5212340f128b4f1aa5efbd439a0b2e91b58")
     version("2.9.0", sha256="612d2387416b5f82dd8545709921440370e144fd46cef633654cf0ee43bac5f8")
