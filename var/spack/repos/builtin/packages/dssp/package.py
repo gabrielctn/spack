@@ -5,33 +5,24 @@
 from spack.package import *
 from spack.pkg.builtin.boost import Boost
 
-
-class Dssp(AutotoolsPackage):
+class Dssp(CMakePackage):
     """'mkdssp' utility. (dictionary of protein secondary structure)"""
 
-    homepage = "https://github.com/cmbi/dssp"
-    url = "https://github.com/cmbi/dssp/archive/3.1.4.tar.gz"
+    homepage = "https://github.com/PDB-REDO/dssp"
+    url      = "https://github.com/PDB-REDO/dssp/archive/refs/tags/v4.5.0.tar.gz"
 
-    license("GPL-3.0-or-later")
+    # New CMake-based build:
+    version("4.5.0", sha256="d8cb1b3b173cb176f19b67459ad37fee203fb942951d2284dd4e8130a76f471d")
 
-    version("3.1.4", sha256="496282b4b5defc55d111190ab9f1b615a9574a2f090e7cf5444521c747b272d4")
-    version("2.3.0", sha256="4c95976d86dc64949cb0807fbd58c7bee5393df0001999405863dc90f05846c6")
-
-    depends_on("cxx", type="build")  # generated
-
-    depends_on("autoconf", type="build")
-    depends_on("automake", type="build")
-    depends_on("libtool", type="build")
-    depends_on("m4", type="build")
+    # Build dependencies
+    depends_on("cmake@3.13:", type="build")
     depends_on("boost@1.48:")
-
-    # TODO: replace this with an explicit list of components of Boost,
-    # for instance depends_on('boost +filesystem')
-    # See https://github.com/spack/spack/pull/22303 for reference
     depends_on(Boost.with_default_variants)
+    depends_on("libcifpp")
+    depends_on("zlib")
+    depends_on("catch2", type=("build", "test"))
 
-    # pdb data download.
-    # 1ALK.pdb - PDB (protein data bank) : https://www.rcsb.org/
+    # pdb data download for the built‐in test
     resource(
         name="pdb_data",
         url="https://files.rcsb.org/download/1ALK.pdb",
@@ -40,14 +31,11 @@ class Dssp(AutotoolsPackage):
         placement="pdb",
     )
 
-    def configure_args(self):
-        args = ["--with-boost=%s" % self.spec["boost"].prefix]
-        return args
-
-    @run_after("configure")
-    def edit(self):
-        makefile = FileFilter(join_path(self.stage.source_path, "Makefile"))
-        makefile.filter(".*-Werror .*", "                    -Wno-error \\")
+#    def cmake_args(self):
+#        # Default CMakePackage will already set -DCMAKE_INSTALL_PREFIX; add
+#        # any extra args here if needed.
+#        args = []
+#        return args
 
     @run_after("install")
     def cache_test_sources(self):
@@ -55,8 +43,11 @@ class Dssp(AutotoolsPackage):
         cache_extra_test_sources(self, "pdb")
 
     def test_mkdssp(self):
-        """calculate structure for example"""
+        """Calculate structure for example."""
         pdb_path = self.test_suite.current_test_cache_dir.pdb
         mkdssp = which(self.prefix.bin.mkdssp)
         with working_dir(pdb_path):
             mkdssp("1ALK.pdb", "1alk.dssp")
+
+    # Override the default build phases to use CMake
+    # (CMakePackage does this automatically based on the class)
